@@ -1,0 +1,10 @@
+version: '3.8'
+
+service:
+### Service 1 : **MariaDB (base de données)**
+
+
+
+volumes:
+
+networks:
