@@ -1,10 +1,24 @@
 #!/bin/bash
+set -e
 
-service mysql start
+# Attendre que MariaDB démarre
+until mysqladmin ping -h "localhost" --silent; do
+    echo "⏳ Waiting for MariaDB to be ready..."
+    sleep 2
+done
 
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS $MYSQL_DATABASE;"
-mysql -u root -e "CREATE USER IF NOT EXISTS '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';"
-mysql -u root -e "GRANT ALL PRIVILEGES ON $MYSQL_DATABASE.* TO '$MYSQL_USER'@'%';"
-mysql -u root -e "FLUSH PRIVILEGES;"
+# Initialiser la base et l'utilisateur
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" <<-EOSQL
+    CREATE DATABASE IF NOT EXISTS $MYSQL_DATABASE;
 
-service mysql stop
+    # Créer l'utilisateur pour toutes les connexions (%)
+    CREATE USER IF NOT EXISTS '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';
+    GRANT ALL PRIVILEGES ON $MYSQL_DATABASE.* TO '$MYSQL_USER'@'%';
+
+    # Créer l'utilisateur pour localhost (connexion interne au container)
+    CREATE USER IF NOT EXISTS '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';
+    GRANT ALL PRIVILEGES ON $MYSQL_DATABASE.* TO '$MYSQL_USER'@'localhost';
+
+    FLUSH PRIVILEGES;
+EOSQL
+
