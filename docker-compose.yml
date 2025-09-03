@@ -1,10 +1,43 @@
 version: '3.8'
 
-service:
-### Service 1 : **MariaDB (base de données)**
+services:
+  # Service 1 : MariaDB
+  mariadb:
+    container_name: inception-mariadb
+    build: ./src/Mariadb
+    env_file: .env
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - wpnet
 
+  # Service 2 : WordPress
+  wordpress:
+    container_name: inception-wordpress
+    build: ./src/Wordpress
+    env_file: .env
+    depends_on:
+      - mariadb
+    networks:
+      - wpnet
+    ports:
+      - "8080:80"
 
+  # Service 3 : NGINX
+  nginx:
+    container_name: inception-nginx
+    build: ./src/Nginx
+    depends_on:
+      - wordpress
+    networks:
+      - wpnet
+    ports:
+      - "${NGINX_PORT}:443"
 
 volumes:
+  mariadb_data:
 
 networks:
+  wpnet:
+    driver: bridge
+

@@ -13,6 +13,6 @@ RUN chmod +x /docker-entrypoint-initdb.d/init.sh
 
 EXPOSE 3306
 
-CMD ["mysqld_safe"]
+CMD ["bash", "-c", "mysqld_safe & sleep 5 && sh /docker-entrypoint-initdb.d/init.sh && tail -f /dev/null"]
 #CMD ["sh", "/docker-entrypoint-initdb.d/init.sh"]
 #CMD ["sleep", "infinity"] 

@@ -1,23 +1,42 @@
 FROM debian:12
 
-RUN	apt-get update && apt-get install -y mariadb-server \
-	&& rm -rf /var/lib/apt/lists/*
+# Installer les paquets nécessaires
+RUN apt-get update && \
+	apt-get install -y \
+			php8.2 \
+			php8.2-cli \
+			php8.2-mysql \
+			php8.2-fpm \
+			mariadb-client \
+			wget \
+			unzip \
+			curl \
+			less \
+		&& rm -rf /var/lib/apt/lists/*
 
-RUN	wget https://fr.wordpress.org/wordpress-6.0-fr_FR.tar.gz -P /var/www
 
-RUN	apt-get install -y php7.3\
-	php-fpm\
-	php-mysql\
-	mariadb-client
+# Télécharger et installer WordPress
+RUN mkdir -p /var/www && \
+    wget https://fr.wordpress.org/wordpress-6.0-fr_FR.tar.gz -O /var/www/wordpress.tar.gz && \
+    tar -xzf /var/www/wordpress.tar.gz -C /var/www && \
+    rm /var/www/wordpress.tar.gz
 
-RUN	cd /var/www && tar -xzf wordpress-6.0-fr_FR.tar.gz && rm wordpress-6.0-fr_FR.tar.gz
+# Donner les permissions correctes
+RUN chown -R www-data:www-data /var/www/wordpress
 
-RUN	chown -R root:root /var/www/wordpress
+RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
+    chmod 755 wp-cli.phar && \
+    mv wp-cli.phar /usr/local/bin/wp
+# Donner les permissions correctes
+# RUN chown -R www-data:www-data /var/www/wordpress
 
-RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-	&& chmod +x wp-cli.phar \
-	&& mv wp-cli.phar /usr/local/bin/wp
+# Installer WP-CLI
+# RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -O /usr/local/bin/wp && \
+#    chmod +x /usr/local/bin/wp
 
-EXPOSE	9000
-
+COPY init.sh /init.sh
+RUN chmod +x /init.sh
+	
+# Lancer le script d'initialisation par défaut
 CMD ["/init.sh"]
+
