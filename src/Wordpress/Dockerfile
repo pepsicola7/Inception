@@ -27,12 +27,6 @@ RUN chown -R www-data:www-data /var/www/wordpress
 RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
     chmod 755 wp-cli.phar && \
     mv wp-cli.phar /usr/local/bin/wp
-# Donner les permissions correctes
-# RUN chown -R www-data:www-data /var/www/wordpress
-
-# Installer WP-CLI
-# RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -O /usr/local/bin/wp && \
-#    chmod +x /usr/local/bin/wp
 
 COPY init.sh /init.sh
 RUN chmod +x /init.sh

@@ -8,6 +8,7 @@ services:
     env_file: .env
     volumes:
       - mariadb_data:/var/lib/mysql
+      - ./src/Mariadb/conf/50-server.cnf:/etc/mysql/mariadb.conf.d/50-server.cnf
     networks:
       - wpnet
 
@@ -22,6 +23,8 @@ services:
       - wpnet
     ports:
       - "8080:80"
+    volumes:
+      - wordpress_data:/var/www/wordpress 
 
   # Service 3 : NGINX
   nginx:
@@ -36,6 +39,7 @@ services:
 
 volumes:
   mariadb_data:
+  wordpress_data:
 
 networks:
   wpnet:

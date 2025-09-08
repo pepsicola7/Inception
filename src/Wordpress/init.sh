@@ -5,20 +5,19 @@ set -e
 until mysqladmin ping -h"$WORDPRESS_DB_HOST" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --silent; do
     sleep 2
 done
-echo "✅ MariaDB is up!"
 
 # Vérifier si WordPress est déjà installé
 if ! wp core is-installed --path=/var/www/wordpress --allow-root; then
-    echo "⚙️ Installing WordPress..."
+    echo "⚙️ [INIT] Installing WordPress..."
 
     wp core config --path=/var/www/wordpress \
         --dbname="$MYSQL_DATABASE" \
         --dbuser="$MYSQL_USER" \
         --dbpass="$MYSQL_PASSWORD" \
         --dbhost="$WORDPRESS_DB_HOST" \
-        --allow-root || true   # <-- éviter que ça stoppe le script
+        --allow-root || echo "❌ wp core config failed"
 
-    echo "core config done"
+    echo "✅ [INIT] core config done"
 
     wp core install --path=/var/www/wordpress \
         --url="$WP_URL" \
@@ -27,20 +26,22 @@ if ! wp core is-installed --path=/var/www/wordpress --allow-root; then
         --admin_password="$WP_ADMIN_PASSWORD" \
         --admin_email="$WP_ADMIN_EMAIL" \
         --skip-email \
-        --allow-root || true
+        --allow-root || echo "❌ wp core install failed"
 
-    echo "core install done"
+    echo "✅ [INIT] core install done"
 
     wp user create "$WP_USER" "$WP_USER_EMAIL" \
         --user_pass="$WP_USER_PASSWORD" \
         --role=author \
-        --allow-root || true
+        --allow-root || echo "❌ wp user create failed"
 fi
 
-echo "✅ WordPress ready"
+echo "✅ [INIT] WordPress setup finished"
 
 # Toujours lancer php-fpm
-exec php-fpm8.2 -F
+echo "🚀 [INIT] Launching php-fpm..."
+exec /usr/sbin/php-fpm8.2 -F
+
 
 
 
