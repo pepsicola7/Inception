@@ -1,46 +1,43 @@
 #!/bin/bash
 set -e
 
-# Attendre que MariaDB soit dispo
+# Attendre MariaDB
 until mysqladmin ping -h"$WORDPRESS_DB_HOST" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --silent; do
     sleep 2
 done
 
-# Vérifier si WordPress est déjà installé
-if ! wp core is-installed --path=/var/www/wordpress --allow-root; then
-    echo "⚙️ [INIT] Installing WordPress..."
+WP_PATH=/var/www/wordpress  # <-- le chemin exact où WordPress est installé
 
-    wp core config --path=/var/www/wordpress \
+# Installer WordPress si non installé
+if ! wp core is-installed --path="$WP_PATH" --allow-root; then
+    wp core config --path="$WP_PATH" \
         --dbname="$MYSQL_DATABASE" \
         --dbuser="$MYSQL_USER" \
         --dbpass="$MYSQL_PASSWORD" \
         --dbhost="$WORDPRESS_DB_HOST" \
-        --allow-root || echo "❌ wp core config failed"
+        --allow-root
 
-    echo "✅ [INIT] core config done"
-
-    wp core install --path=/var/www/wordpress \
+    wp core install --path="$WP_PATH" \
         --url="$WP_URL" \
         --title="$WP_TITLE" \
         --admin_user="$WP_ADMIN_USER" \
         --admin_password="$WP_ADMIN_PASSWORD" \
         --admin_email="$WP_ADMIN_EMAIL" \
         --skip-email \
-        --allow-root || echo "❌ wp core install failed"
+        --allow-root
+fi
 
-    echo "✅ [INIT] core install done"
-
+# Créer l’utilisateur WordPress
+if ! wp user get "$WP_USER" --allow-root --path="$WP_PATH" > /dev/null 2>&1; then
     wp user create "$WP_USER" "$WP_USER_EMAIL" \
         --user_pass="$WP_USER_PASSWORD" \
         --role=author \
-        --allow-root || echo "❌ wp user create failed"
+        --allow-root \
+        --path="$WP_PATH"
 fi
 
-echo "✅ [INIT] WordPress setup finished"
-
-# Toujours lancer php-fpm
-echo "🚀 [INIT] Launching php-fpm..."
-exec /usr/sbin/php-fpm8.2 -F
+# Lancer PHP-FPM
+php-fpm8.2 -F
 
 
 
