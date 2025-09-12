@@ -1,51 +1,49 @@
-COMPOSE_FILE = ./docker-compose.yml
+COMPOSE_FILE = ./src/docker-compose.yml
 PROJECT_NAME = inception
-PORT ?=8443
+PORT ?= 8443
+DOCKER_COMPOSE = docker compose
 
-.PHONY: build up down restart logs prune clean rebuild
+.PHONY: build up down restart logs prune clean rebuild re log
 
 up:
 	@echo "🔼 Démarrage des services sur le port $(PORT)..."
 	# @sed "s/REPLACE_PORT/$(PORT)/g" $(COMPOSE_FILE) > $(COMPOSE_FILE)
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d --build
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d --build
 
 down:
 	@echo "🧹 Arrêt des services"
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down || true
-	docker network rm inception_inception_network || true
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down || true
+	docker network rm $(PROJECT_NAME)_inception_network || true
 
 prune:
 	@echo "🧼 Nettoyage complet"
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
-	docker volume prune -f
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
+	docker volume prune -f	
 	docker container prune -f
 
 logs:
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f
 
 restart: down up
 
-
-
 clean:
-	docker stop $$(docker ps -aq)
-	docker rm $$(docker ps -a -q)
-	docker rmi -f $$(docker images -q)
-	docker volume rm $$(docker volume ls -q)
+	docker stop $$(docker ps -aq) || true
+	docker rm $$(docker ps -a -q) || true
+	docker rmi -f $$(docker images -q) || true
+	docker volume rm $$(docker volume ls -q) || true
 	docker network prune -f 
 
 re:
-	@echo "Arret de tous les services"
-	-docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down
-	@echo "Nettoyage des images et des volumes"
+	@echo "⏹️ Arrêt de tous les services"
+	-$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down
+	@echo "🧽 Nettoyage des images et des volumes"
 	docker system prune -af
 	docker volume prune -f
-	@echo "Construction des images sans cache"
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) build --no-cache
-	@echo "Démarrage des services"
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d
-	@echo "Done :)"
-
+	@echo "🔨 Construction des images sans cache"
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) build --no-cache
+	@echo "🚀 Démarrage des services"
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d
+	@echo "✅ Done :)"
 
 rebuild:
 	@if [ -z "$(name)" ]; then \
@@ -53,8 +51,8 @@ rebuild:
 		exit 1; \
 	fi
 	@echo "🔨 Rebuilding container: $(name)"
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) build --no-cache $(name)
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d $(name)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) build --no-cache $(name)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d $(name)
 
 log:
 	@if [ -z "$(name)" ]; then \
@@ -62,4 +60,4 @@ log:
 		exit 1; \
 	fi
 	@echo "📜 Displaying logs for container: $(name)"
-	docker-compose -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f $(name)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f $(name)
