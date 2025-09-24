@@ -1,0 +1,60 @@
+services:
+  mariadb:
+    build: ./Mariadb
+    container_name: mariadb
+    env_file: .env
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./Mariadb/conf/50-server.cnf:/etc/mysql/mariadb.conf.d/50-server.cnf
+    networks:
+      - inception
+
+  wordpress:
+    build: ./Wordpress
+    container_name: wordpress
+    env_file: .env
+    depends_on:
+      - mariadb
+    networks:
+      - inception
+    expose:
+      - "9000"
+    volumes:
+      - wordpress_data:/var/www/wordpress
+
+  nginx:
+    build: ./Nginx
+    container_name: nginx
+    depends_on:
+      - wordpress
+    networks:
+      - inception
+    ports:
+      - "443:443"
+    volumes:
+      - ./Nginx/conf/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./Nginx/tools/localhost.crt:/etc/ssl/certs/localhost.crt:ro
+      - ./Nginx/tools/localhost.key:/etc/ssl/private/localhost.key:ro
+      - wordpress_data:/var/www/wordpress:ro
+
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/peli/data/mariadb
+      o: bind
+
+  wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/peli/data/wordpress
+      o: bind
+
+networks:
+  inception:
+    driver: bridge
+
+
+

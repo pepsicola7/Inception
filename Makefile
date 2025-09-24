@@ -1,63 +1,44 @@
-COMPOSE_FILE = ./src/docker-compose.yml
-PROJECT_NAME = inception
-PORT ?= 8443
+# Variables
 DOCKER_COMPOSE = docker compose
+COMPOSE_FILE = ./srcs/docker-compose.yml
+PROJECT_NAME = inception
+LOGIN = peli
+DATA_PATH = /home/$(LOGIN)/data
+WORDPRESS_VOLUME = $(DATA_PATH)/wordpress
+MARIADB_VOLUME = $(DATA_PATH)/mariadb
 
-.PHONY: build up down restart logs prune clean rebuild re log
+.PHONY: all stop clean fclean re logs
 
-up:
-	@echo "🔼 Démarrage des services sur le port $(PORT)..."
-	# @sed "s/REPLACE_PORT/$(PORT)/g" $(COMPOSE_FILE) > $(COMPOSE_FILE)
+# --- build & run ---
+all: volumes
+	@echo "🔼 Lancement des services avec build..."
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d --build
 
-down:
-	@echo "🧹 Arrêt des services"
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down || true
-	docker network rm $(PROJECT_NAME)_inception_network || true
+# --- stop services ---
+stop:
+	@echo "🛑 Arrêt des services..."
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) stop
 
-prune:
-	@echo "🧼 Nettoyage complet"
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
-	docker volume prune -f	
-	docker container prune -f
+# --- remove containers but keep images ---
+clean: stop
+	@echo "🧹 Suppression des conteneurs, volumes et réseaux orphelins..."
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down --volumes --remove-orphans
 
+# --- full reset (⚠️ supprime aussi volumes + cache images inutilisées) ---
+fclean: clean
+	@echo "🧼 Nettoyage complet du système Docker (⚠️ volumes et cache supprimés)"
+	docker system prune -af --volumes 2>/dev/null || true
+
+# --- rebuild ---
+re: fclean all
+
+# --- logs ---
 logs:
+	@echo "📜 Affichage des logs..."
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f
 
-restart: down up
-
-clean:
-	docker stop $$(docker ps -aq) || true
-	docker rm $$(docker ps -a -q) || true
-	docker rmi -f $$(docker images -q) || true
-	docker volume rm $$(docker volume ls -q) || true
-	docker network prune -f 
-
-re:
-	@echo "⏹️ Arrêt de tous les services"
-	-$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down
-	@echo "🧽 Nettoyage des images et des volumes"
-	docker system prune -af
-	docker volume prune -f
-	@echo "🔨 Construction des images sans cache"
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) build --no-cache
-	@echo "🚀 Démarrage des services"
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d
-	@echo "✅ Done :)"
-
-rebuild:
-	@if [ -z "$(name)" ]; then \
-		echo "❌ Error: please provide a container name (e.g. 'make rebuild name=backend')"; \
-		exit 1; \
-	fi
-	@echo "🔨 Rebuilding container: $(name)"
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) build --no-cache $(name)
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) up -d $(name)
-
-log:
-	@if [ -z "$(name)" ]; then \
-		echo "❌ Error: please provide a container name (e.g. 'make log name=backend')"; \
-		exit 1; \
-	fi
-	@echo "📜 Displaying logs for container: $(name)"
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f $(name)
+# --- create volumes folders ---
+volumes:
+	@echo "📂 Vérification et création des volumes dans $(DATA_PATH)"
+	@mkdir -p $(WORDPRESS_VOLUME)
+	@mkdir -p $(MARIADB_VOLUME)
